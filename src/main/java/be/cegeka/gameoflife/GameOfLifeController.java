@@ -1,5 +1,6 @@
 package be.cegeka.gameoflife;
 
+import be.cegeka.gameoflife.model.Generation;
 import org.apache.log4j.Logger;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +21,7 @@ public class GameOfLifeController {
     @ResponseBody
     public List<List<Boolean>> getWorld(@RequestBody List<List<Boolean>> currentWorld){
         //logger.info(currentWorld);
-        return currentWorld;
+        return new Generation(currentWorld).nextGeneration().asNestedList();
     }
 
 }

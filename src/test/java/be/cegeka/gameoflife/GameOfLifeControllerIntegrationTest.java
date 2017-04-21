@@ -10,15 +10,13 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static java.util.Arrays.asList;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,12 +38,24 @@ public class GameOfLifeControllerIntegrationTest {
 
     @Test
     public void testGetApplicationName_ShouldReturnApplicationName() throws Exception {
-        List<List<Boolean>> world = Collections.emptyList();
-        mockMvc.perform(
+        // GIVEN
+        List<List<Boolean>> world = blinker();
+
+        // WHEN
+        ResultActions actual = mockMvc.perform(
                 post("/gameoflife/world")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(world.toString())
-            )
-            .andExpect(status().isOk());
+            );
+
+        // THEN
+        actual.andExpect(status().isOk())
+            .andExpect(content().string("[[false,true,false],[false,true,false],[false,true,false]]"));
+    }
+
+    private List<List<Boolean>> blinker() {
+        List<Boolean> emptyRow = asList(false, false, false);
+        List<Boolean> fullRow = asList(true, true, true);
+        return asList(emptyRow, fullRow, emptyRow);
     }
 }
