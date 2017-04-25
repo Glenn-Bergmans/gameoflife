@@ -1,76 +1,103 @@
 package be.cegeka.gameoflife.model;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toList;
 
 public class Generation {
 
-    private Cell[][] cells;
+    private Map<Position, Cell> grid;
 
     public Generation(List<List<Boolean>> world) {
-        cells = convertToCells(world);
-        assignNeighboursToCells();
+        grid = findAllLivingCellsIn(world);
+        assignLivingNeighboursToCells();
     }
 
-    private Cell[][] convertToCells(List<List<Boolean>> world) {
-        int dimension = world.size();
-        Cell[][] cells = new Cell[dimension][dimension];
-        for(int i = 0; i < dimension; i++) {
-            for(int j = 0; j < dimension; j++) {
-                boolean alive = world.get(i).get(j);
-                cells[i][j] = new Cell(alive);
-            }
-        }
-        return cells;
-    }
-
-    private void assignNeighboursToCells() {
-        for(int i = 0; i < cells.length; i++) {
-            for(int j = 0; j < cells[0].length; j++) {
-                List<Cell> neighbours = findNeighboursOfCellAt(i, j);
-                cells[i][j].setNeighbours(neighbours);
-            }
-        }
-    }
-
-    private List<Cell> findNeighboursOfCellAt(int xCoordinate, int yCoordinate) {
-        List<Cell> neighbours = new ArrayList<>();
-        int rangeLeft = xCoordinate > 0 ? 1 : 0;
-        int rangeRight = xCoordinate < cells.length - 1 ? 1 : 0;
-        int rangeTop = yCoordinate > 0 ? 1 : 0;
-        int rangeBottom = yCoordinate < cells[0].length - 1 ? 1 : 0;
-        for(int i = xCoordinate - rangeLeft; i <= xCoordinate + rangeRight; i++) {
-            for(int j = yCoordinate - rangeTop; j <= yCoordinate + rangeBottom; j++) {
-                if(! (i == xCoordinate && j == yCoordinate)) {
-                    neighbours.add(cells[i][j]);
+    private Map<Position, Cell> findAllLivingCellsIn(List<List<Boolean>> world) {
+        Map<Position, Cell> grid = new HashMap<>();
+        for(int row = 0; row < world.size(); row++) {
+            for(int column = 0; column < world.get(0).size(); column++) {
+                boolean cellIsAlive = world.get(row).get(column);
+                if(cellIsAlive) {
+                    Position position = new Position(row, column);
+                    grid.put(position, new Cell(true, position));
                 }
             }
         }
-        return neighbours;
+        return grid;
     }
 
-    public Generation(Cell[][] cells) {
-        this.cells = cells;
+    private List<Cell> getNeighboursOf(Cell cell) {
+        Position position = cell.getPosition();
+        return Stream.of(
+            getCellAt(Position.topLeftOf(position)),
+            getCellAt(Position.above(position)),
+            getCellAt(Position.topRightOf(position)),
+            getCellAt(Position.leftOf(position)),
+            getCellAt(Position.rightOf(position)),
+            getCellAt(Position.bottomLeftOf(position)),
+            getCellAt(Position.below(position)),
+            getCellAt(Position.bottomRightOf(position))
+        ).collect(toList());
     }
 
-    public List<List<Boolean>> asNestedList() {
+    private int amountOfLivingNeighboursOf(Cell cell) {
+        Position position = cell.getPosition();
+        return (int) Stream.of(
+            grid.get(Position.topLeftOf(position)),
+            grid.get(Position.above(position)),
+            grid.get(Position.topRightOf(position)),
+            grid.get(Position.leftOf(position)),
+            grid.get(Position.rightOf(position)),
+            grid.get(Position.bottomLeftOf(position)),
+            grid.get(Position.below(position)),
+            grid.get(Position.bottomRightOf(position))
+        ).filter(Objects::nonNull)
+            .count();
+    }
+
+    private void assignLivingNeighboursToCells() {
+        grid.values().forEach(cell -> cell.setAmountOfLivingNeighbours(amountOfLivingNeighboursOf(cell)));
+    }
+
+    private Cell getCellAt(Position position) {
+        return grid.getOrDefault(position, generateDeadCellAt(position));
+    }
+
+    private Cell generateDeadCellAt(Position position) {
+        Cell cell = new Cell(false, position);
+        cell.setAmountOfLivingNeighbours(amountOfLivingNeighboursOf(cell));
+        return cell;
+    }
+
+    public Generation( Map<Position, Cell> livingCells) {
+        this.grid = livingCells;
+        assignLivingNeighboursToCells();
+    }
+
+    public List<List<Boolean>> asNestedList(int size) {
         List<List<Boolean>> nestedList = new ArrayList<>();
-        for(int i = 0; i < cells.length; i++) {
+        for(int row = 0; row < size; row++) {
             nestedList.add(new ArrayList<>());
-            for(int j = 0; j < cells[0].length; j++) {
-                nestedList.get(i).add(cells[i][j].isAlive());
+            for(int column = 0; column < size; column++) {
+                nestedList.get(row).add(getCellAt(new Position(row, column)).isAlive());
             }
         }
         return nestedList;
     }
 
     public Generation nextGeneration() {
-        Cell[][] nextGeneration = new Cell[cells.length][cells[0].length];
-        for(int i = 0; i < cells.length; i++) {
-            for (int j = 0; j < cells[0].length; j++) {
-                nextGeneration[i][j] = cells[i][j].nextGeneration();
-            }
-        }
-        return new Generation(nextGeneration);
+        Map<Position, Cell> livingCellsInNextGeneration = grid.values().stream()
+            .map(this::getNeighboursOf)
+            .flatMap(Collection::stream)
+            .distinct()
+            .map(Cell::nextGeneration)
+            .filter(Cell::isAlive)
+            .collect(Collectors.toMap(Cell::getPosition, identity()));
+        return new Generation(livingCellsInNextGeneration);
     }
+
 }

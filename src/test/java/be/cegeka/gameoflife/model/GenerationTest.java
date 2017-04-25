@@ -18,7 +18,7 @@ public class GenerationTest {
         generation = new Generation(expected);
 
         // WHEN
-        List<List<Boolean>> actual = generation.asNestedList();
+        List<List<Boolean>> actual = generation.asNestedList(3);
 
         // THEN
         assertThat(actual.size()).isEqualTo(3);
@@ -34,7 +34,7 @@ public class GenerationTest {
         generation = new Generation(blinker);
 
         // WHEN
-        List<List<Boolean>> actual = generation.nextGeneration().asNestedList();
+        List<List<Boolean>> actual = generation.nextGeneration().asNestedList(3);
 
         // THEN
         assertThat(actual.size()).isEqualTo(3);

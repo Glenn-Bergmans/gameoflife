@@ -21,7 +21,7 @@ public class GameOfLifeController {
     @ResponseBody
     public List<List<Boolean>> getWorld(@RequestBody List<List<Boolean>> currentWorld){
         //logger.info(currentWorld);
-        return new Generation(currentWorld).nextGeneration().asNestedList();
+        return new Generation(currentWorld).nextGeneration().asNestedList(currentWorld.size());
     }
 
 }
